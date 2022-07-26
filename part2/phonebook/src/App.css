@@ -1,0 +1,17 @@
+.delete-btn:hover {
+  background-color: lightcoral;
+}
+
+.delete-btn {
+  margin-left: 10px;
+  flex-direction: column;
+  border: 1px red solid;
+  border-radius: 5px;
+}
+
+.flex-row {
+  justify-content: space-between;
+  width: 350px;
+  display: flex;
+  flex-wrap: wrap;
+}

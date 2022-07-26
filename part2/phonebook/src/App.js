@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import "./App.css";
 import AddContactForm from "./components/AddContactForm";
+import personService from "./services/persons";
+// npx json-server --port 3001 --watch db.json to start the server
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -8,6 +10,25 @@ const App = () => {
   const [newNumber, setNewNumber] = useState("");
   const [filter, setFilter] = useState("");
   const [filteredPersons, setFilteredPersons] = useState(persons);
+
+  const filterPerson = (event) => {
+    event.preventDefault();
+    setFilteredPersons(
+      persons.filter((person) => person.name.includes(filter))
+    );
+  };
+
+  const handleNameChange = (event) => setNewName(event.target.value);
+  const handleNumberChange = (event) => setNewNumber(event.target.value);
+  const handleFilterChange = (event) => setFilter(event.target.value);
+
+  // get initial data from the server
+  useEffect(() => {
+    personService.getAll().then((initialPersons) => {
+      setPersons(initialPersons);
+      setFilteredPersons(initialPersons);
+    });
+  }, []);
 
   const addPerson = (event) => {
     event.preventDefault();
@@ -17,49 +38,46 @@ const App = () => {
     };
 
     // check if newName is already added
-    const numDupNames = persons.filter(
-      (person) => person.name === newName
-    ).length;
-    if (numDupNames === 0) {
-      setPersons(persons.concat(newPerson));
-      setFilteredPersons(persons.concat(newPerson));
-      setNewName("");
-      setNewNumber("");
-    } else {
-      window.alert(`${newName} is already added to phonebook`);
+    const dupPersons = persons.filter((person) => person.name === newName);
+    if (dupPersons.length === 0) {
+      // add the contact to server
+      personService.create(newPerson).then((returnedPerson) => {
+        setPersons(persons.concat(returnedPerson));
+        setFilteredPersons(persons.concat(returnedPerson));
+      });
+    } else if (
+      window.confirm(`${newName} is already added, update their phone number?`)
+    ) {
+      console.log("update id:" + dupPersons[0].id);
+
+      personService
+        .update(dupPersons[0].id, newPerson)
+        .then((returnedPerson) => {
+          // update client side state values as well
+          const updatedPersons = persons.map((person) =>
+            person.id !== returnedPerson.id ? person : returnedPerson
+          );
+          setPersons(updatedPersons);
+          setFilteredPersons(updatedPersons);
+        });
+    }
+    setNewName("");
+    setNewNumber("");
+  };
+
+  const deletePerson = (id, name) => {
+    if (window.confirm(`Delete ${name}?`)) {
+      personService
+        .remove(id)
+        .then((response) => {
+          // update client side state data as well
+          const updatedPersons = persons.filter((person) => person.id !== id);
+          setPersons(updatedPersons);
+          setFilteredPersons(updatedPersons);
+        })
+        .catch((error) => console.log("error"));
     }
   };
-
-  const filterPerson = (event) => {
-    event.preventDefault();
-    setFilteredPersons(
-      persons.filter((person) => person.name.includes(filter))
-    );
-  };
-
-  const handleNameChange = (event) => {
-    // event is the input element
-    setNewName(event.target.value);
-  };
-
-  const handleNumberChange = (event) => {
-    // event is the input element
-    setNewNumber(event.target.value);
-  };
-
-  const handleFilterChange = (event) => {
-    // event is the input element
-    setFilter(event.target.value);
-  };
-
-  useEffect(() => {
-    console.log("effect");
-    axios.get("http://localhost:3001/persons").then((response) => {
-      console.log("promise fulfilled");
-      setPersons(response.data);
-      setFilteredPersons(response.data);
-    });
-  }, []);
 
   return (
     <div>
@@ -81,13 +99,21 @@ const App = () => {
 
       <h2>Numbers</h2>
       <ul>
-        {[
-          filteredPersons.map((person) => (
-            <li key={person.name}>
-              {person.name}: {person.number}
-            </li>
-          )),
-        ]}
+        {filteredPersons.length !== 0
+          ? [
+              filteredPersons.map((person) => (
+                <li key={person.id} className="flex-row">
+                  {person.name}: {person.number}{" "}
+                  <button
+                    onClick={() => deletePerson(person.id, person.name)}
+                    className="delete-btn"
+                  >
+                    delete
+                  </button>
+                </li>
+              )),
+            ]
+          : null}
       </ul>
     </div>
   );
