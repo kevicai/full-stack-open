@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 import AddContactForm from "./components/AddContactForm";
+import Notification from "./components/Notification";
+import PersonsList from "./components/PersonsList";
 import personService from "./services/persons";
 // npx json-server --port 3001 --watch db.json to start the server
 
@@ -10,6 +12,7 @@ const App = () => {
   const [newNumber, setNewNumber] = useState("");
   const [filter, setFilter] = useState("");
   const [filteredPersons, setFilteredPersons] = useState(persons);
+  const [message, setMessage] = useState(null);
 
   const filterPerson = (event) => {
     event.preventDefault();
@@ -30,6 +33,14 @@ const App = () => {
     });
   }, []);
 
+  const setTimeoutMessage = (message) => {
+    setMessage(message);
+    console.log(message);
+    setTimeout(() => {
+      setMessage(null);
+    }, 3000);
+  };
+
   const addPerson = (event) => {
     event.preventDefault();
     const newPerson = {
@@ -44,25 +55,27 @@ const App = () => {
       personService.create(newPerson).then((returnedPerson) => {
         setPersons(persons.concat(returnedPerson));
         setFilteredPersons(persons.concat(returnedPerson));
+        setTimeoutMessage(`Added ${newName}`);
       });
     } else if (
       window.confirm(`${newName} is already added, update their phone number?`)
     ) {
-      console.log("update id:" + dupPersons[0].id);
-
-      personService
-        .update(dupPersons[0].id, newPerson)
-        .then((returnedPerson) => {
-          // update client side state values as well
-          const updatedPersons = persons.map((person) =>
-            person.id !== returnedPerson.id ? person : returnedPerson
-          );
-          setPersons(updatedPersons);
-          setFilteredPersons(updatedPersons);
-        });
+      updatePerson(dupPersons[0].id, newPerson);
     }
     setNewName("");
     setNewNumber("");
+  };
+
+  const updatePerson = (id, newPerson) => {
+    personService.update(id, newPerson).then((returnedPerson) => {
+      // update client side state values as well
+      const updatedPersons = persons.map((person) =>
+        person.id !== returnedPerson.id ? person : returnedPerson
+      );
+      setPersons(updatedPersons);
+      setFilteredPersons(updatedPersons);
+      setTimeoutMessage(`Updated ${newName}'s number`);
+    });
   };
 
   const deletePerson = (id, name) => {
@@ -74,21 +87,27 @@ const App = () => {
           const updatedPersons = persons.filter((person) => person.id !== id);
           setPersons(updatedPersons);
           setFilteredPersons(updatedPersons);
+          setTimeoutMessage(`Deleted ${newName}`);
         })
-        .catch((error) => console.log("error"));
+        .catch((error) =>
+          setTimeoutMessage(
+            `Deleted failed, ${newName} is already deleted on the server`
+          )
+        );
     }
   };
 
   return (
     <div>
-      <h2>Phonebook</h2>
+      <h1>Phonebook</h1>
+      <Notification message={message} />
       <form onSubmit={filterPerson}>
         <div>filter name containing: </div>
         <input value={filter} onChange={handleFilterChange} />
         <button type="submit">filter</button>
       </form>
 
-      <h2>Add a New Contact</h2>
+      <h3>Add a New Contact</h3>
       <AddContactForm
         handleNameChange={handleNameChange}
         handleNumberChange={handleNumberChange}
@@ -97,24 +116,11 @@ const App = () => {
         newNumber={newNumber}
       />
 
-      <h2>Numbers</h2>
-      <ul>
-        {filteredPersons.length !== 0
-          ? [
-              filteredPersons.map((person) => (
-                <li key={person.id} className="flex-row">
-                  {person.name}: {person.number}{" "}
-                  <button
-                    onClick={() => deletePerson(person.id, person.name)}
-                    className="delete-btn"
-                  >
-                    delete
-                  </button>
-                </li>
-              )),
-            ]
-          : null}
-      </ul>
+      <h3>Numbers</h3>
+      <PersonsList
+        filteredPersons={filteredPersons}
+        deletePerson={deletePerson}
+      />
     </div>
   );
 };
