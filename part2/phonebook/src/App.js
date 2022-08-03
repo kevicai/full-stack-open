@@ -52,11 +52,14 @@ const App = () => {
     const dupPersons = persons.filter((person) => person.name === newName);
     if (dupPersons.length === 0) {
       // add the contact to server
-      personService.create(newPerson).then((returnedPerson) => {
-        setPersons(persons.concat(returnedPerson));
-        setFilteredPersons(persons.concat(returnedPerson));
-        setTimeoutMessage(`Added ${newName}`);
-      });
+      personService
+        .create(newPerson)
+        .then((returnedPerson) => {
+          setPersons(persons.concat(returnedPerson));
+          setFilteredPersons(persons.concat(returnedPerson));
+          setTimeoutMessage(`Added ${newName}`);
+        })
+        .catch((error) => setTimeoutMessage(error.response.data.error));
     } else if (
       window.confirm(`${newName} is already added, update their phone number?`)
     ) {
@@ -67,15 +70,18 @@ const App = () => {
   };
 
   const updatePerson = (id, newPerson) => {
-    personService.update(id, newPerson).then((returnedPerson) => {
-      // update client side state values as well
-      const updatedPersons = persons.map((person) =>
-        person.id !== returnedPerson.id ? person : returnedPerson
-      );
-      setPersons(updatedPersons);
-      setFilteredPersons(updatedPersons);
-      setTimeoutMessage(`Updated ${newName}'s number`);
-    });
+    personService
+      .update(id, newPerson)
+      .then((returnedPerson) => {
+        // update client side state values as well
+        const updatedPersons = persons.map((person) =>
+          Number(person.id) !== returnedPerson.id ? person : returnedPerson
+        );
+        setPersons(updatedPersons);
+        setFilteredPersons(updatedPersons);
+        setTimeoutMessage(`Updated ${newName}'s number`);
+      })
+      .catch((error) => setTimeoutMessage(error.response.data.error));
   };
 
   const deletePerson = (id, name) => {
@@ -87,11 +93,11 @@ const App = () => {
           const updatedPersons = persons.filter((person) => person.id !== id);
           setPersons(updatedPersons);
           setFilteredPersons(updatedPersons);
-          setTimeoutMessage(`Deleted ${newName}`);
+          setTimeoutMessage(`Deleted ${name}`);
         })
         .catch((error) =>
           setTimeoutMessage(
-            `Deleted failed, ${newName} is already deleted on the server`
+            `Deleted failed, ${name} is already deleted on the server`
           )
         );
     }
