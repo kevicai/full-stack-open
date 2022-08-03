@@ -74,8 +74,11 @@ const App = () => {
       .update(id, newPerson)
       .then((returnedPerson) => {
         // update client side state values as well
-        const updatedPersons = persons.map((person) =>
-          Number(person.id) !== returnedPerson.id ? person : returnedPerson
+        const updatedPersons = persons.map((person) => {
+
+          return person.id !== returnedPerson.id ? person : returnedPerson
+        }
+
         );
         setPersons(updatedPersons);
         setFilteredPersons(updatedPersons);
