@@ -75,11 +75,8 @@ const App = () => {
       .then((returnedPerson) => {
         // update client side state values as well
         const updatedPersons = persons.map((person) => {
-
-          return person.id !== returnedPerson.id ? person : returnedPerson
-        }
-
-        );
+          return person.id !== returnedPerson.id ? person : returnedPerson;
+        });
         setPersons(updatedPersons);
         setFilteredPersons(updatedPersons);
         setTimeoutMessage(`Updated ${newName}'s number`);
