@@ -1,7 +1,6 @@
 const blogsRouter = require("express").Router();
 const Blog = require("../models/blog");
 const User = require("../models/user");
-const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 blogsRouter.get("/", async (request, response) => {
@@ -25,9 +24,8 @@ blogsRouter.get("/:id", async (request, response) => {
 });
 
 blogsRouter.post("/", async (request, response) => {
-  const token = request.token;
-  const user = await User.findById(decodedToken.id);
   const body = request.body;
+  const user = request.user;
 
   // set default likes to 0 if not specified
   const blog = new Blog({
@@ -41,37 +39,41 @@ blogsRouter.post("/", async (request, response) => {
   const savedBlog = await blog.save();
 
   // update blogs stored under the user in db
-  user.blogs = user.blogs.concat(savedBlog._id);
-  await user.save();
+  request.user.blogs = user.blogs.concat(savedBlog._id);
+  await request.user.save();
 
   response.status(201).json(savedBlog.toJSON);
 });
 
 blogsRouter.delete("/:id", async (request, response) => {
-  const token = request.token;
-  const user = await User.findById(decodedToken.id);
-
-  const id = request.params.id;
-  const blog = await Blog.findById(id);
-
-  if (blog.user.toString() === user.id.toString()) {
-    await Blog.deleteOne({ _id: id });
-
-    user.blogs = user.blogs.filter((blog) => blog.toString() !== id);
-    user.save();
-    response.sendStatus(204).end();
-  } else {
-    response.status(401).json({ error: "unauthorized operation" });
+  const user = request.user;
+  const blogToDelete = await Blog.findById(request.params.id);
+  if (!blogToDelete) {
+    return response.status(204).end();
   }
+
+  if (blogToDelete.user && blogToDelete.user.toString() !== user.id) {
+    return response.status(401).json({
+      error: "only the creator can delete a blog",
+    });
+  }
+
+  await Blog.deleteOne({ _id: id });
+
+  user.blogs = user.blogs.filter((blog) => blog.toString() !== id);
+  user.save();
+  response.sendStatus(204).end();
+
+  await Blog.findByIdAndRemove(request.params.id);
+
+  response.status(204).end();
 });
 
 blogsRouter.put("/:id", async (request, response) => {
-  const user = await User.findById(decodedToken.id);
   const blog = request.body;
-  const id = request.params.id;
 
-  if (blog.user.toString() === user.id.toString()) {
-    const updatedBlog = await Blog.findByIdAndUpdate(id, blog, {
+  if (blog.user.toString() === request.user.id.toString()) {
+    const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, blog, {
       new: true,
     }).populate("user", { username: 1, name: 1 });
 
