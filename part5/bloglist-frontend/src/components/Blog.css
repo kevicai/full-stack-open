@@ -1,0 +1,9 @@
+.blog-card {
+    background-color: rgb(188, 228, 255);
+    width: 25vw;
+    padding: 10px 10px;
+    line-height: 30px;
+    border: 3px solid rgb(69, 161, 177);
+    border-radius: 5px;
+    margin-top: 10px;
+}

@@ -1,6 +1,9 @@
+import "./Blog.css";
+
 const Blog = ({blog}) => (
-  <div>
-    {blog.title} {blog.author}
+  <div className="blog-card">
+    <div>{blog.title}</div>
+    <div>By: {blog.author}</div>
   </div>  
 )
 
